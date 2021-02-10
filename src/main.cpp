@@ -2,9 +2,7 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-// MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
-
-// Pins: 3, 13, 24
+MIDI_CREATE_INSTANCE(HardwareSerial, Serial1, MIDI);
 
 //  First 16 are MIDI footswitches, last two are bank switching
 const int midiButtonCount = 16;
@@ -24,11 +22,8 @@ unsigned long buttonTimeout = 150;
 //  MIDI variables
 //  Commands to send, multiples of 16 in banks
 const int channel = 1;
-const int numBanks = 2;
-int currentBank = 0;
 int commands[] =
-    {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
-     17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32};
+    { 1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18 };
 
 
 enum ButtonStates { OFF, ACTIVE, PLAYING, RECORDING };
@@ -40,22 +35,21 @@ CRGB PlayStop[4]  = { CRGB::Black, CRGB::Black, CRGB::Red, CRGB::Yellow };
 CRGB Toggle[4]    = { CRGB::Black, CRGB::Black, CRGB::Red, CRGB::Yellow }; 
 CRGB Momentary[4] = { CRGB::Black, CRGB::Red, CRGB::Black, CRGB::Black }; 
 
-ButtonStates buttonStates[midiButtonCount * numBanks];
+ButtonStates buttonStates[numButtons];
 
 //  Logical Button States, stored by bank
-byte midiState[numButtons * numBanks];
+byte midiState[numButtons];
 
 void SetCC(int button, bool value)
 {
-    int bankAdjusted = (midiButtonCount * currentBank) + button;
-    midiState[bankAdjusted] = value;
-    int velocity = midiState[bankAdjusted] == HIGH ? 127 : 0;
-    // MIDI.sendControlChange(commands[bankAdjusted], velocity, channel);
+    midiState[button] = value;
+    int velocity = midiState[button] == HIGH ? 127 : 0;
+    MIDI.sendControlChange(commands[button], velocity, channel);
 
     Serial.print("Sent ");
-    Serial.print(bankAdjusted);
+    Serial.print(button);
     Serial.print(", ");
-    Serial.print(commands[bankAdjusted]);
+    Serial.print(commands[button]);
     Serial.print(", ");
     Serial.println(velocity);
 }
@@ -72,12 +66,12 @@ void setup()
         lastPressed[i] = 0;
     }
 
-    for(int i = 0; i < midiButtonCount * numBanks; i++)
+    for(int i = 0; i < numButtons; i++)
     {
         buttonStates[i] = OFF;
     }
 
-    //MIDI.begin(channel);
+    MIDI.begin(channel);
 
     Serial.println("Begun!");
 }
